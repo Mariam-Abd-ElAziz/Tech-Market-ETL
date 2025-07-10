@@ -134,8 +134,6 @@ CREATE TABLE If  NOT EXISTS Fact.FactTechJob(
     work_type_id INT,
     experience_level_id INT,
     benefit_id INT,
-    industry_id INT,
-    skill_id VARCHAR(10),
     remote_allowed BOOLEAN ,
     normalized_salary FLOAT,
 
