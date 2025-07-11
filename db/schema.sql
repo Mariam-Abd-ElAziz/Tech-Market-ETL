@@ -1,10 +1,12 @@
-CREATE SCHEMA IF NOT EXISTS Staging;
-CREATE SCHEMA IF NOT EXISTS Dim;
-CREATE SCHEMA IF NOT EXISTS Fact;
-SET search_path TO Staging,Dim,Fact;
+CREATE SCHEMA IF NOT EXISTS staging;
+CREATE SCHEMA IF NOT EXISTS dim;
+CREATE SCHEMA IF NOT EXISTS fact;
+CREATE SCHEMA IF NOT EXISTS bridge;
+SET search_path TO staging,dim,fact,bridge;
+
 
 -- Raw data:
-CREATE TABLE IF NOT EXISTS Staging.StgPosting(
+CREATE TABLE IF NOT EXISTS staging.stg_posting(
     job_id TEXT,
     company_name TEXT,
     title TEXT,
@@ -38,7 +40,7 @@ CREATE TABLE IF NOT EXISTS Staging.StgPosting(
     fips TEXT
 );
 
-CREATE TABLE IF NOT EXISTS Staging.StgCompany (
+CREATE TABLE IF NOT EXISTS staging.stg_company (
     company_id TEXT,
     name TEXT,
     description TEXT,
@@ -51,8 +53,8 @@ CREATE TABLE IF NOT EXISTS Staging.StgCompany (
     url TEXT
 );
 
---Dimensions:
-CREATE TABLE IF NOT EXISTS Dim.DimCompany(
+-- Dimensions:
+CREATE TABLE IF NOT EXISTS dim.dim_company(
      company_sk BIGSERIAL PRIMARY KEY,
      company_id BIGINT NOT NULL,
      company_name TEXT NOT NULL,
@@ -60,150 +62,155 @@ CREATE TABLE IF NOT EXISTS Dim.DimCompany(
      description TEXT,
      url TEXT
 );
-CREATE TABLE IF NOT EXISTS Dim.DimIndustry (
+
+CREATE TABLE IF NOT EXISTS dim.dim_industry (
     industry_id INT PRIMARY KEY,
-    industry_name TEXT UNIQUE Not NULL
+    industry_name TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Dim.DimSkill (
+CREATE TABLE IF NOT EXISTS dim.dim_skill (
     skill_id VARCHAR(10) PRIMARY KEY,
-    skill_name TEXT UNIQUE Not NULL
+    skill_name TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Dim.DimBenefit (
+CREATE TABLE IF NOT EXISTS dim.dim_benefit (
     benefit_id SERIAL PRIMARY KEY,
-    benefit_name TEXT UNIQUE Not NULL
+    benefit_name TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Dim.DimWorkType (
+CREATE TABLE IF NOT EXISTS dim.dim_work_type (
     work_type_id SERIAL PRIMARY KEY,
-    work_type_name TEXT UNIQUE
+    work_type_name TEXT UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Dim.DimExpLevel (
+CREATE TABLE IF NOT EXISTS dim.dim_exp_level (
    experience_level_id SERIAL PRIMARY KEY,
-   experience_levelname TEXT UNIQUE
+   experience_level_name TEXT UNIQUE NOT NULL
 );
 
-
-CREATE TABLE IF NOT EXISTS Dim.DimDate (
-    DateKey INT PRIMARY KEY,
-    Date DATE NOT NULL,
-    Day INT NOT NULL,
-    DaySuffix VARCHAR(2) NOT NULL,
-    WeekdayName VARCHAR(10) NOT NULL,
-    WeekdayNumber INT NOT NULL,
-    IsWeekend BOOLEAN NOT NULL,
-    DOW_IN_MONTH INT NOT NULL,
-    DayOfYear INT NOT NULL,
-    WeekOfYear INT NOT NULL,
-    Month INT NOT NULL,
-    MonthName VARCHAR(10) NOT NULL,
-    Quarter INT NOT NULL,
-    QuarterName VARCHAR(10) NOT NULL,
-    Year INT NOT NULL,
-    ISOYear INT NOT NULL,
-    FirstDayOfMonth DATE NOT NULL,
-    LastDayOfMonth DATE NOT NULL,
-    FirstDayOfQuarter DATE NOT NULL,
-    LastDayOfQuarter DATE NOT NULL,
-    FirstDayOfYear DATE NOT NULL,
-    LastDayOfYear DATE NOT NULL,
-    IsLeapYear BOOLEAN NOT NULL,
-    IsHoliday BOOLEAN DEFAULT FALSE
+CREATE TABLE IF NOT EXISTS dim.dim_date (
+    date_key INT PRIMARY KEY,
+    date DATE NOT NULL,
+    day INT NOT NULL,
+    day_suffix VARCHAR(2) NOT NULL,
+    weekday_name VARCHAR(10) NOT NULL,
+    weekday_number INT NOT NULL,
+    is_weekend BOOLEAN NOT NULL,
+    dow_in_month INT NOT NULL,
+    day_of_year INT NOT NULL,
+    week_of_year INT NOT NULL,
+    month INT NOT NULL,
+    month_name VARCHAR(10) NOT NULL,
+    quarter INT NOT NULL,
+    quarter_name VARCHAR(10) NOT NULL,
+    year INT NOT NULL,
+    iso_year INT NOT NULL,
+    first_day_of_month DATE NOT NULL,
+    last_day_of_month DATE NOT NULL,
+    first_day_of_quarter DATE NOT NULL,
+    last_day_of_quarter DATE NOT NULL,
+    first_day_of_year DATE NOT NULL,
+    last_day_of_year DATE NOT NULL,
+    is_leap_year BOOLEAN NOT NULL,
+    is_holiday BOOLEAN DEFAULT FALSE
 );
 
-
-CREATE TABLE If  NOT EXISTS Dim.DimLocation (
+CREATE TABLE IF NOT EXISTS dim.dim_location (
     location_id SERIAL PRIMARY KEY,
-    city TEXT,
-    state TEXT,
+    region TEXT,
     country TEXT,
-    location TEXT UNIQUE --for unstructured locations
+    location TEXT UNIQUE
 );
 
-
---Fact tables:
-CREATE TABLE If  NOT EXISTS Fact.FactTechJob(
+-- Fact tables:
+CREATE TABLE IF NOT EXISTS fact.fact_tech_job(
     job_sk BIGSERIAL PRIMARY KEY,
     job_id BIGINT NOT NULL,
     job_title TEXT NOT NULL,
-    listing_date_key  INT,
+    listing_date_key INT,
     company_id INT,
     location_id INT,
     work_type_id INT,
     experience_level_id INT,
-    benefit_id INT,
-    remote_allowed BOOLEAN ,
+    remote_allowed BOOLEAN,
+    salary_exist BOOLEAN,
     normalized_salary FLOAT,
 
-    FOREIGN KEY (listing_date_key) REFERENCES DimDate(DateKey),
-    FOREIGN KEY (company_id) REFERENCES DimCompany(company_sk),
-    FOREIGN KEY (location_id) REFERENCES DimLocation(location_id),
-    FOREIGN KEY (work_type_id) REFERENCES DimWorkType(work_type_id),
-    FOREIGN KEY (experience_level_id) REFERENCES DimExpLevel(experience_level_id),
-    FOREIGN KEY (benefit_id) REFERENCES DimBenefit(benefit_id)
+    FOREIGN KEY (listing_date_key) REFERENCES dim_date(date_key),
+    FOREIGN KEY (company_id) REFERENCES dim_company(company_sk),
+    FOREIGN KEY (location_id) REFERENCES dim_location(location_id),
+    FOREIGN KEY (work_type_id) REFERENCES dim_work_type(work_type_id),
+    FOREIGN KEY (experience_level_id) REFERENCES dim_exp_level(experience_level_id)
 );
-CREATE TABLE IF NOT EXISTS Fact.BridgeJobSkill(
-    job_id     INT NOT NULL,
-    skill_id   VARCHAR(10) NOT NULL,
+
+CREATE TABLE IF NOT EXISTS bridge.bridge_job_skill(
+    job_id INT NOT NULL,
+    skill_id VARCHAR(10) NOT NULL,
     PRIMARY KEY (job_id, skill_id),
-    FOREIGN KEY (job_id) REFERENCES FactTechJob(job_sk),
-    FOREIGN KEY (skill_id) REFERENCES DimSkill(skill_id)
+    FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
+    FOREIGN KEY (skill_id) REFERENCES dim_skill(skill_id)
 );
 
-CREATE TABLE IF NOT EXISTS Fact.BridgeJobIndustry(
-    job_id     INT NOT NULL,
-    industry_id   INT NOT NULL,
+CREATE TABLE IF NOT EXISTS bridge.bridge_job_industry(
+    job_id INT NOT NULL,
+    industry_id INT NOT NULL,
     PRIMARY KEY (job_id, industry_id),
-    FOREIGN KEY (job_id) REFERENCES FactTechJob(job_sk),
-    FOREIGN KEY (industry_id) REFERENCES DimIndustry(industry_id)
+    FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
+    FOREIGN KEY (industry_id) REFERENCES dim_industry(industry_id)
 );
 
---Time Dim Script
-INSERT INTO Dim.DimDate (
-    DateKey, Date, Day, DaySuffix,
-    WeekdayName, WeekdayNumber, IsWeekend,
-    DOW_IN_MONTH, DayOfYear, WeekOfYear,
-    Month, MonthName, Quarter, QuarterName,
-    Year, ISOYear,
-    FirstDayOfMonth, LastDayOfMonth,
-    FirstDayOfQuarter, LastDayOfQuarter,
-    FirstDayOfYear, LastDayOfYear,
-    IsLeapYear
+CREATE TABLE IF NOT EXISTS bridge.bridge_job_benefit(
+    job_id INT NOT NULL,
+    benefit_id INT NOT NULL,
+    PRIMARY KEY (job_id, benefit_id),
+    FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
+    FOREIGN KEY (benefit_id) REFERENCES dim_benefit(benefit_id)
+);
+
+-- Time Dimension Data Load:
+INSERT INTO dim.dim_date (
+    date_key, date, day, day_suffix,
+    weekday_name, weekday_number, is_weekend,
+    dow_in_month, day_of_year, week_of_year,
+    month, month_name, quarter, quarter_name,
+    year, iso_year,
+    first_day_of_month, last_day_of_month,
+    first_day_of_quarter, last_day_of_quarter,
+    first_day_of_year, last_day_of_year,
+    is_leap_year
 )
 SELECT
-    TO_CHAR(d, 'YYYYMMDD')::INT AS DateKey,
-    d AS Date,
-    EXTRACT(DAY FROM d)::INT AS Day,
+    TO_CHAR(d, 'YYYYMMDD')::INT AS date_key,
+    d AS date,
+    EXTRACT(DAY FROM d)::INT AS day,
     CASE
         WHEN EXTRACT(DAY FROM d)::INT IN (11,12,13) THEN 'th'
         WHEN RIGHT(EXTRACT(DAY FROM d)::TEXT,1) = '1' THEN 'st'
         WHEN RIGHT(EXTRACT(DAY FROM d)::TEXT,1) = '2' THEN 'nd'
         WHEN RIGHT(EXTRACT(DAY FROM d)::TEXT,1) = '3' THEN 'rd'
         ELSE 'th'
-    END AS DaySuffix,
-    TO_CHAR(d, 'FMDay') AS WeekdayName,
-    EXTRACT(DOW FROM d)::INT + 1 AS WeekdayNumber, -- Sunday=1 to Saturday=7
-    CASE WHEN EXTRACT(DOW FROM d) IN (0,6) THEN TRUE ELSE FALSE END AS IsWeekend,
-    ((EXTRACT(DAY FROM d)::INT - 1) / 7 + 1)::INT AS DOW_IN_MONTH,
-    EXTRACT(DOY FROM d)::INT AS DayOfYear,
-    EXTRACT(WEEK FROM d)::INT AS WeekOfYear,
-    EXTRACT(MONTH FROM d)::INT AS Month,
-    TO_CHAR(d, 'Month') AS MonthName,
-    EXTRACT(QUARTER FROM d)::INT AS Quarter,
-    'Q' || EXTRACT(QUARTER FROM d)::INT AS QuarterName,
-    EXTRACT(YEAR FROM d)::INT AS Year,
-    EXTRACT(ISOYEAR FROM d)::INT AS ISOYear,
-    DATE_TRUNC('month', d)::DATE AS FirstDayOfMonth,
-    (DATE_TRUNC('month', d) + INTERVAL '1 month - 1 day')::DATE AS LastDayOfMonth,
-    DATE_TRUNC('quarter', d)::DATE AS FirstDayOfQuarter,
-    (DATE_TRUNC('quarter', d) + INTERVAL '3 months - 1 day')::DATE AS LastDayOfQuarter,
-    DATE_TRUNC('year', d)::DATE AS FirstDayOfYear,
-    (DATE_TRUNC('year', d) + INTERVAL '1 year - 1 day')::DATE AS LastDayOfYear,
+    END AS day_suffix,
+    TO_CHAR(d, 'FMDay') AS weekday_name,
+    EXTRACT(DOW FROM d)::INT + 1 AS weekday_number,
+    CASE WHEN EXTRACT(DOW FROM d) IN (0,6) THEN TRUE ELSE FALSE END AS is_weekend,
+    ((EXTRACT(DAY FROM d)::INT - 1) / 7 + 1)::INT AS dow_in_month,
+    EXTRACT(DOY FROM d)::INT AS day_of_year,
+    EXTRACT(WEEK FROM d)::INT AS week_of_year,
+    EXTRACT(MONTH FROM d)::INT AS month,
+    TO_CHAR(d, 'Month') AS month_name,
+    EXTRACT(QUARTER FROM d)::INT AS quarter,
+    'Q' || EXTRACT(QUARTER FROM d)::INT AS quarter_name,
+    EXTRACT(YEAR FROM d)::INT AS year,
+    EXTRACT(ISOYEAR FROM d)::INT AS iso_year,
+    DATE_TRUNC('month', d)::DATE AS first_day_of_month,
+    (DATE_TRUNC('month', d) + INTERVAL '1 month - 1 day')::DATE AS last_day_of_month,
+    DATE_TRUNC('quarter', d)::DATE AS first_day_of_quarter,
+    (DATE_TRUNC('quarter', d) + INTERVAL '3 months - 1 day')::DATE AS last_day_of_quarter,
+    DATE_TRUNC('year', d)::DATE AS first_day_of_year,
+    (DATE_TRUNC('year', d) + INTERVAL '1 year - 1 day')::DATE AS last_day_of_year,
     CASE
         WHEN (EXTRACT(YEAR FROM d)::INT % 4 = 0 AND EXTRACT(YEAR FROM d)::INT % 100 != 0)
              OR (EXTRACT(YEAR FROM d)::INT % 400 = 0)
         THEN TRUE ELSE FALSE
-    END AS IsLeapYear
+    END AS is_leap_year
 FROM generate_series('2000-01-01'::DATE, '2050-12-31'::DATE, INTERVAL '1 day') AS d;
