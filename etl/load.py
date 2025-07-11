@@ -3,7 +3,7 @@ import psycopg2
 import pandas as pd
 from config import DB_CONFIG
 import logging
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 def load_df_to_table(df:pd.DataFrame, table_name:str,schema_name:str="public"):
     try:

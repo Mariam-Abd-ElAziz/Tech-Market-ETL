@@ -10,7 +10,7 @@ import pickle
 from etl.utils import read_table_from_db
 
 setup_logging()
-logger = logging.getLogger(_name_)
+logger = logging.getLogger(__name__)
 
 
 DATA_DIR = "data"
