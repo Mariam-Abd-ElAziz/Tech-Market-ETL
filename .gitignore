@@ -2,3 +2,5 @@
 .env
 /data
 tech-market-etl.log
+csv_file_state.pkl
+**/__pycache__/
