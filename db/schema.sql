@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS dim.dim_industry (
 );
 
 CREATE TABLE IF NOT EXISTS dim.dim_skill (
-    skill_id VARCHAR(10) PRIMARY KEY,
+    skill_abr VARCHAR(10) PRIMARY KEY,
     skill_name TEXT UNIQUE NOT NULL
 );
 
@@ -145,10 +145,10 @@ CREATE TABLE IF NOT EXISTS fact.fact_tech_job(
 
 CREATE TABLE IF NOT EXISTS bridge.bridge_job_skill(
     job_id INT NOT NULL,
-    skill_id VARCHAR(10) NOT NULL,
-    PRIMARY KEY (job_id, skill_id),
+    skill_abr VARCHAR(10) NOT NULL,
+    PRIMARY KEY (job_id, skill_abr),
     FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
-    FOREIGN KEY (skill_id) REFERENCES dim_skill(skill_id)
+    FOREIGN KEY (skill_abr) REFERENCES dim_skill(skill_abr)
 );
 
 CREATE TABLE IF NOT EXISTS bridge.bridge_job_industry(
@@ -157,14 +157,6 @@ CREATE TABLE IF NOT EXISTS bridge.bridge_job_industry(
     PRIMARY KEY (job_id, industry_id),
     FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
     FOREIGN KEY (industry_id) REFERENCES dim_industry(industry_id)
-);
-
-CREATE TABLE IF NOT EXISTS bridge.bridge_job_benefit(
-    job_id INT NOT NULL,
-    benefit_id INT NOT NULL,
-    PRIMARY KEY (job_id, benefit_id),
-    FOREIGN KEY (job_id) REFERENCES fact_tech_job(job_sk),
-    FOREIGN KEY (benefit_id) REFERENCES dim_benefit(benefit_id)
 );
 
 -- Time Dimension Data Load:
