@@ -103,14 +103,13 @@ def run_pipeline():
     dim_industry=read_table_from_db("dim_industry","dim")
     dim_skill=read_table_from_db("dim_skill","dim")
     # BRIDGE JOB-SKILL
-    if 'jobs_skills' in csv_data:
-        bridge_skills = transform_bridge_table(
-            jobs_skills_df,
-            dim_skill,
-            fact_jobs,
-            bridge_dim_col="skill_abr"
-        )
-        load_df_to_table(bridge_skills, "bridge_job_skill","bridge")
+    bridge_skills = transform_bridge_table(
+        jobs_skills_df,
+        dim_skill,
+        fact_jobs,
+        bridge_dim_col="skill_abr"
+    )
+    load_df_to_table(bridge_skills, "bridge_job_skill","bridge")
 
 
     # BRIDGE JOB-INDUSTRY
